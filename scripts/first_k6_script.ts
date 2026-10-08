@@ -1,19 +1,29 @@
 import http from 'k6/http'
-import { sleep } from 'k6'
-import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js"
+import { sleep, check } from 'k6' //checks and threshold
+
+const BASE_URL = __ENV.BASE_URL || 'https://test.k6.io'
 
 export const options = {
-    vus: 5,
-    duration:'10s',
+    //Adding ramp up and ramp down
+    stages:[
+        {duration:'5s', target:5},
+        {duration:'3s', target: 5},
+        {duration:'5s', target:0},
+    ],
+
+    thresholds:{
+        http_req_duration: ['p(95)<500']
+    }
 }
 
 export default function(){
-    http.get('https://test.k6.io');
+    const response = http.get(BASE_URL);
+
+    //Adding checks
+    check(response,{
+
+        'status is 200':(r) => r.status === 200,
+    });
     sleep(1)
 }
 
-export function handleSummary(data){
-    return{
-        "report.html":htmlReport(data)
-    }
-}
